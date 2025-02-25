@@ -12,7 +12,7 @@ pipeline {
             steps {
                 script {
                     // Build Docker image
-                    sh 'docker-compose build'
+                    sh 'docker compose build'
                 }
             }
         }
@@ -21,10 +21,10 @@ pipeline {
             steps {
                 script {
                     // Stop and remove existing container
-                    sh 'docker-compose down || true'
+                    sh 'docker compose down || true'
                     
                     // Start new container
-                    sh 'docker-compose up -d'
+                    sh 'docker compose up -d'
                     
                     // Connect to external network
                     sh '''
@@ -68,7 +68,7 @@ pipeline {
                 // Cleanup on failure
                 sh '''
                     docker network disconnect ${EXTERNAL_NETWORK} ${CONTAINER_NAME} || true
-                    docker-compose down || true
+                    docker compose down || true
                 '''
                 
                 emailext (
