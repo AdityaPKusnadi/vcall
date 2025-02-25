@@ -39,8 +39,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function requestInitialPermissions() {
+        try {
+            // Request permissions immediately
+            await navigator.mediaDevices.getUserMedia({ 
+                video: true, 
+                audio: true 
+            }).then(stream => {
+                // Immediately stop the stream - we just want to trigger the permission prompt
+                stream.getTracks().forEach(track => track.stop());
+            });
+            return true;
+        } catch (error) {
+            console.error('Initial permission request failed:', error);
+            return false;
+        }
+    }
+
     async function initializeMedia() {
         updatePermissionUI('pending');
+        
+        // First try to trigger the permission prompt
+        await requestInitialPermissions();
         
         try {
             const hasPermissions = await checkPermissions();
@@ -71,7 +91,16 @@ document.addEventListener('DOMContentLoaded', () => {
             retryPermissions.classList.remove('hidden');
             
             // Show specific error message
-            const errorMessage = getErrorMessage(error);
+            const errorMessage = `
+                ${getErrorMessage(error)}
+                <div class="mt-4 p-3 bg-yellow-50 rounded-lg text-sm">
+                    <strong>Can't see the camera icon?</strong><br>
+                    1. Check the left side of your address bar<br>
+                    2. Look for any shield/security icons<br>
+                    3. Try clicking the site information icon (padlock/info icon)<br>
+                    4. Make sure no other app is using your camera
+                </div>
+            `;
             permissionStatus.innerHTML = errorMessage;
         }
     }
@@ -270,6 +299,9 @@ document.addEventListener('DOMContentLoaded', () => {
     joinBtn.addEventListener('click', joinRoom);
     leaveBtn.addEventListener('click', leaveRoom);
     
+    // Start requesting permissions as soon as possible
+    requestInitialPermissions();
+
     // Initialize on load
     initializeMedia().then(() => {
         initializePeer();

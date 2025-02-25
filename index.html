@@ -7,12 +7,21 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Add Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta http-equiv="permissions-policy" content="camera=*, microphone=*">
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Add this permissions overlay -->
     <div id="permissions-overlay" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
         <div class="bg-white p-8 rounded-xl max-w-md w-full mx-4">
             <h2 class="text-2xl font-bold mb-4">Camera & Microphone Access</h2>
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg text-sm">
+                <p class="font-semibold mb-2">👉 Looking for permission prompt?</p>
+                <ul class="list-disc pl-4 space-y-1">
+                    <li>Check the address bar at the top</li>
+                    <li>Look for camera icon or site settings icon (padlock)</li>
+                    <li>Click it to manage camera/microphone permissions</li>
+                </ul>
+            </div>
             <div class="space-y-4 mb-6">
                 <div id="camera-permission" class="flex items-center gap-3">
                     <i class="fas fa-video text-xl w-8"></i>
