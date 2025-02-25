@@ -11,20 +11,69 @@ document.addEventListener('DOMContentLoaded', () => {
     const leaveBtn = document.getElementById('leave-btn');
     const roomDisplay = document.getElementById('room-display');
     
-    // Initialize media
-    async function initializeMedia() {
+    const permissionsOverlay = document.getElementById('permissions-overlay');
+    const cameraPermission = document.getElementById('camera-permission');
+    const micPermission = document.getElementById('mic-permission');
+    const permissionStatus = document.getElementById('permission-status');
+    const retryPermissions = document.getElementById('retry-permissions');
+
+    async function checkPermissions() {
         try {
+            const result = await navigator.permissions.query({ name: 'camera' });
+            if (result.state === 'denied') {
+                throw new Error('Camera permission denied');
+            }
+        } catch (error) {
+            console.warn('Permissions API not supported or permission denied');
+        }
+    }
+
+    async function initializeMedia() {
+        updatePermissionUI('pending');
+        
+        try {
+            await checkPermissions();
+            
             localStream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
                 video: true
             });
+            
+            updatePermissionUI('granted');
             localVideo.srcObject = localStream;
+            permissionsOverlay.classList.add('hidden');
+            
         } catch (error) {
             console.error('Error accessing media devices:', error);
-            alert('Could not access camera or microphone. Please check permissions.');
+            updatePermissionUI('denied');
+            retryPermissions.classList.remove('hidden');
         }
     }
-    
+
+    function updatePermissionUI(status) {
+        const statusIcons = {
+            pending: '<i class="fas fa-spinner fa-spin text-yellow-500"></i>',
+            granted: '<i class="fas fa-check text-green-500"></i>',
+            denied: '<i class="fas fa-times text-red-500"></i>'
+        };
+
+        const statusMessages = {
+            pending: 'Please allow access to your camera and microphone...',
+            granted: 'Permissions granted! Initializing video call...',
+            denied: 'Please allow camera and microphone access in your browser settings and retry.'
+        };
+
+        const icon = statusIcons[status] || statusIcons.pending;
+        cameraPermission.querySelector('span:last-child').innerHTML = icon;
+        micPermission.querySelector('span:last-child').innerHTML = icon;
+        permissionStatus.textContent = statusMessages[status];
+    }
+
+    retryPermissions.addEventListener('click', () => {
+        retryPermissions.classList.add('hidden');
+        initializeMedia();
+    });
+
     // Initialize PeerJS
     function initializePeer() {
         // Using the free PeerJS server with random user ID
@@ -111,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add a remote video to the DOM
     function addRemoteVideo(peerId, stream) {
         const videoContainer = document.createElement('div');
-        videoContainer.className = 'video-item';
+        videoContainer.className = 'w-full max-w-sm relative rounded-xl overflow-hidden shadow-lg bg-black';
         videoContainer.id = `remote-container-${peerId}`;
         
         const video = document.createElement('video');
@@ -119,9 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
         video.autoplay = true;
         video.playsInline = true;
         video.srcObject = stream;
+        video.className = 'w-full h-[240px] object-cover';
         
         const label = document.createElement('div');
-        label.className = 'video-label';
+        label.className = 'absolute bottom-4 left-4 bg-black/50 text-white px-3 py-1 rounded-lg';
         label.textContent = `Peer: ${peerId.substring(0, 5)}...`;
         
         videoContainer.appendChild(video);
@@ -162,6 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
         roomDisplay.textContent = '';
         joinBtn.disabled = false;
         leaveBtn.disabled = true;
+        
+        // Show permissions overlay again
+        permissionsOverlay.classList.remove('hidden');
         
         // Reinitialize everything for next call
         initializeMedia().then(() => {
