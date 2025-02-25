@@ -8,12 +8,24 @@
     <!-- Add Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <meta http-equiv="permissions-policy" content="camera=*, microphone=*">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; media-src *;">
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Add this permissions overlay -->
     <div id="permissions-overlay" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
         <div class="bg-white p-8 rounded-xl max-w-md w-full mx-4">
             <h2 class="text-2xl font-bold mb-4">Camera & Microphone Access</h2>
+            <!-- Add more detailed instructions -->
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg text-sm">
+                <p class="font-semibold mb-2">👉 Desktop Browser Instructions:</p>
+                <ul class="list-disc pl-4 space-y-1">
+                    <li>Look for camera icon 🎥 in address bar</li>
+                    <li>Or click the lock/site info icon 🔒</li>
+                    <li>Select "Site settings" or "Permissions"</li>
+                    <li>Allow both Camera and Microphone</li>
+                    <li>Refresh the page after allowing</li>
+                </ul>
+            </div>
             <div class="mb-6 p-4 bg-blue-50 rounded-lg text-sm">
                 <p class="font-semibold mb-2">👉 Looking for permission prompt?</p>
                 <ul class="list-disc pl-4 space-y-1">

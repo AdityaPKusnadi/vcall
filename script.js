@@ -19,19 +19,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function checkPermissions() {
         try {
-            // Check if browser supports permissions API
+            // Try to enumerate devices first to trigger permission prompt
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const hasCamera = devices.some(device => device.kind === 'videoinput');
+            const hasMic = devices.some(device => device.kind === 'audioinput');
+
+            if (!hasCamera || !hasMic) {
+                throw new Error('No camera or microphone found');
+            }
+
+            // Additional permission check
             if (navigator.permissions && navigator.permissions.query) {
                 const cameraResult = await navigator.permissions.query({ name: 'camera' });
                 const micResult = await navigator.permissions.query({ name: 'microphone' });
                 
+                // Check for explicit denial
                 if (cameraResult.state === 'denied' || micResult.state === 'denied') {
-                    throw new Error('Camera or microphone permission denied');
+                    throw new Error('Permissions explicitly denied');
                 }
             }
             
-            // Fallback check using getUserMedia
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-            stream.getTracks().forEach(track => track.stop()); // Stop the test stream
             return true;
         } catch (error) {
             console.warn('Permission check failed:', error);
@@ -59,27 +66,37 @@ document.addEventListener('DOMContentLoaded', () => {
     async function initializeMedia() {
         updatePermissionUI('pending');
         
-        // First try to trigger the permission prompt
-        await requestInitialPermissions();
-        
         try {
-            const hasPermissions = await checkPermissions();
-            
-            if (!hasPermissions) {
-                throw new Error('Permissions not granted');
-            }
-            
+            // First try low-quality constraints to make initial permission easier
             localStream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true
-                },
+                audio: true,
                 video: {
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    facingMode: 'user'
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
                 }
             });
+            
+            // If successful, try to upgrade to better quality
+            try {
+                const betterStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    },
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    }
+                });
+                
+                // Stop the old stream
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = betterStream;
+            } catch (e) {
+                console.warn('Could not upgrade stream quality:', e);
+                // Continue with the lower quality stream
+            }
             
             updatePermissionUI('granted');
             localVideo.srcObject = localStream;
@@ -89,20 +106,37 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error accessing media devices:', error);
             updatePermissionUI('denied');
             retryPermissions.classList.remove('hidden');
-            
-            // Show specific error message
-            const errorMessage = `
-                ${getErrorMessage(error)}
+            handlePermissionError(error);
+        }
+    }
+
+    function handlePermissionError(error) {
+        let errorMessage = getErrorMessage(error);
+        
+        // Add browser-specific instructions
+        if (navigator.userAgent.includes('Chrome')) {
+            errorMessage += `
                 <div class="mt-4 p-3 bg-yellow-50 rounded-lg text-sm">
-                    <strong>Can't see the camera icon?</strong><br>
-                    1. Check the left side of your address bar<br>
-                    2. Look for any shield/security icons<br>
-                    3. Try clicking the site information icon (padlock/info icon)<br>
-                    4. Make sure no other app is using your camera
+                    <strong>For Chrome users:</strong><br>
+                    1. Click the camera icon 🎥 in the address bar<br>
+                    2. Or click the lock/info icon 🔒 next to the URL<br>
+                    3. Select "Site settings"<br>
+                    4. Allow both camera and microphone<br>
+                    5. Refresh the page
                 </div>
             `;
-            permissionStatus.innerHTML = errorMessage;
+        } else if (navigator.userAgent.includes('Firefox')) {
+            errorMessage += `
+                <div class="mt-4 p-3 bg-yellow-50 rounded-lg text-sm">
+                    <strong>For Firefox users:</strong><br>
+                    1. Click the shield icon 🛡️ in the address bar<br>
+                    2. Allow permissions for camera and microphone<br>
+                    3. Refresh the page
+                </div>
+            `;
         }
+        
+        permissionStatus.innerHTML = errorMessage;
     }
 
     function getErrorMessage(error) {
